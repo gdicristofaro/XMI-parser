@@ -388,35 +388,45 @@ public class Parser {
 	public static Map<String, Set<AssociationObject>> getAssociations(Document d, Map<String, String> ids) {
 		Map<String, Set<AssociationObject>> returnMap = new HashMap<String, Set<AssociationObject>>();
 		
-		NodeList associations = d.getElementsByTagName("UML:AssociationEnd");
+		NodeList associations = d.getElementsByTagName("UML:Association");
 		for (int i = 0; i < associations.getLength(); i++) {
-			try {
 				Element e = (Element) associations.item(i);
 				
-				if (!e.getAttribute("navigableType").equals("navigable"))
+				// make sure it actually has an id
+				if (!e.hasAttribute("xmi.id"))
 					continue;
-
-				String ownerID = ((Element) ((Element) e.getElementsByTagName("UML:Feature.owner").item(0))
-					.getElementsByTagName("UML:Classifier").item(0)).getAttribute("xmi.idref");
 				
-				String endID = ((Element) ((Element) e.getElementsByTagName("UML:AssociationEnd.participant").item(0))
-						.getElementsByTagName("UML:Classifier").item(0)).getAttribute("xmi.idref");
-				
-				String end = ids.get(endID);
+				NodeList assEndNodes = e.getElementsByTagName("UML:AssociationEnd");
+				List<Element> assocEnds = new ArrayList<Element>();
+				for (int a = 0; a < assEndNodes.getLength(); a++) {
+					if (((Element) assEndNodes.item(a)).getAttribute("navigableType").equals("navigable")) {
+						assocEnds.add((Element) assEndNodes.item(a));
+					}
+				}
 				
 				DescInf res = getDescriptor(e);
 				
-				if (!returnMap.containsKey(ownerID))
-					returnMap.put(ownerID, new HashSet<AssociationObject>());
-				
-				returnMap.get(ownerID).add(new AssociationObject(res.name, res.description, end));
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-				continue;
-			}
-
+				for (Element assocEnd : assocEnds) {
+					try {
+						String ownerID = ((Element) ((Element) assocEnd.getElementsByTagName("UML:Feature.owner").item(0))
+							.getElementsByTagName("UML:Classifier").item(0)).getAttribute("xmi.idref");
+						
+						String endID = ((Element) ((Element) assocEnd.getElementsByTagName("UML:AssociationEnd.participant").item(0))
+								.getElementsByTagName("UML:Classifier").item(0)).getAttribute("xmi.idref");
+						
+						String end = ids.get(endID);
+	
+						if (!returnMap.containsKey(ownerID))
+							returnMap.put(ownerID, new HashSet<AssociationObject>());
+						
+						returnMap.get(ownerID).add(new AssociationObject(res.name, res.description, end));
+					} catch (Exception exc) {
+						exc.printStackTrace();
+						continue;
+					}
+				}
 		}
+
 		
 		return returnMap;
 	}
